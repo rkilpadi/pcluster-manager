@@ -13,19 +13,21 @@ when 'amazon', 'centos'
   package 'mysql'
 end
 
-group 'slurmrestd' do
-    comment 'slurmrestd group'
-    gid '2000'
-    system true
-    action :create
+# Setup slurm restd group
+group node['cluster']['slurm']['restd_group'] do
+    comment 'slurm restd group'
+    id node['cluster']['slurm']['restd_group_id']
+    system true     
 end
-
-user 'slurmrestd' do
-    comment 'slurmrestd user'
-    uid '2000'
-    gid '2000'
+  
+# Setup slurm restd user
+  user node['cluster']['slurm']['restd_user'] do
+    comment 'slurm restd user'
+    uid node['cluster']['slurm']['restd_user_id']
+    gid node['cluster']['slurm']['restd_group_id']
+    home "/home/#{node['cluster']['slurm']['user']}"
     system true
-    action :create
+    shell '/bin/bash'
 end
 
 file '/etc/systemd/system/slurmrestd.service' do
