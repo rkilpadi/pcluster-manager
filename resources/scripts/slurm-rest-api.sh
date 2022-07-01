@@ -45,6 +45,4 @@ sudo cinc-client \
   -j dna_combined.json \
   -z slurm_rest_api.rb
 
-SLURM_JWT=`scontrol token | grep -oP "^SLURM_JWT\\s*\\=\\s*\\K(.+)"`
-export $SLURM_JWT
 set +e
