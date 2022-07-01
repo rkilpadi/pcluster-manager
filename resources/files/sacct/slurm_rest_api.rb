@@ -57,7 +57,7 @@ ruby_block 'Add JWT configuration to slurm.conf' do
     not_if "grep -q AuthAlt #{slurm_etc}/slurm.conf"
 end
 
-SLURM_JWT = Mixlib::ShellOut.new("scontrol token | grep -oP "[^=]*$"").run_command.stdout
+SLURM_JWT = Mixlib::ShellOut.new("scontrol token | grep -oP "^SLURM_JWT\\s*\\=\\s*\\K(.+)"").run_command.stdout
 
 service 'slurmrestd' do
   action :start
