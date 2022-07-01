@@ -50,12 +50,14 @@ end
 ruby_block 'Add JWT configuration to slurm.conf' do
     block do
       file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
-      file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")
+      file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
       file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=/var/spool/slurm.state/jwt_hs256.key")
       file.write_file
     end
     not_if "grep -q AuthAlt #{slurm_etc}/slurm.conf"
 end
+
+SLURM_JWT = Mixlib::ShellOut.new("scontrol token | grep -oP "[^=]*$"").run_command.stdout
 
 service 'slurmrestd' do
   action :start
