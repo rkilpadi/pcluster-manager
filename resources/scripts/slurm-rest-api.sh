@@ -31,6 +31,14 @@ do
     wget -qO- ${source_path}/sacct/${file} > ${file}
 done
 
+# Add JWT key to controller in StateSaveLocation
+source <(grep StateSaveLocation /opt/slurm/etc/slurm.conf)
+dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
+chown slurm:slurm ${StateSaveLocation}/jwt_hs256.key
+chmod 0600 ${StateSaveLocation}/jwt_hs256.key
+chown slurm:slurm ${StateSaveLocation}
+chmod 0755 ${StateSaveLocation}
+
 sudo cinc-client \
   --local-mode \
   --config /etc/chef/client.rb \
@@ -39,6 +47,7 @@ sudo cinc-client \
   --no-color \
   --chef-zero-port 8889 \
   -j dna_combined.json \
-  -z slurm_accounting.rb
+  -z slurm_rest_api.rb
 
-sudo service slurmctld restart
+scontrol token username="ec2-user"
+set +e

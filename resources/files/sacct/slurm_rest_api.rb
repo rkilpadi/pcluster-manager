@@ -6,13 +6,25 @@ secret = JSON.parse(shell_out!("aws secretsmanager get-secret-value --secret-id 
 
 slurm_etc = '/opt/slurm/etc'
 
-case node['platform']
-when 'ubuntu'
-  package 'mysql-client'
-when 'amazon', 'centos'
-  package 'mysql'
+# TODO set group/user with node attributes:
+=begin
+# Setup slurm restd group
+group node['cluster']['slurm']['restd_group'] do
+    comment 'slurm restd group'
+    gid node['cluster']['slurm']['restd_group_id']
+    system true
 end
-
+  
+  # Setup slurm restd user
+user node['cluster']['slurm']['restd_user'] do
+    comment 'slurm restd user'
+    uid node['cluster']['slurm']['restd_user_id']
+    gid node['cluster']['slurm']['restd_group_id']
+    home "/home/#{node['cluster']['slurm']['user']}"
+    system true
+    shell '/bin/bash'
+end
+=end
 group 'slurmrestd' do
     comment 'slurmrestd group'
     gid '2000'
@@ -33,6 +45,16 @@ file '/etc/systemd/system/slurmrestd.service' do
   group 'slurmrestd'
   mode '0644'
   content ::File.open('/tmp/slurm_rest_api/slurmrestd.service').read
+end
+
+ruby_block 'Add JWT configuration to slurm.conf' do
+    block do
+      file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
+      file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")
+      file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=/var/spool/slurm.state/jwt_hs256.key")
+      file.write_file
+    end
+    not_if "grep -q AuthAlt #{slurm_etc}/slurm.conf"
 end
 
 service 'slurmrestd' do
