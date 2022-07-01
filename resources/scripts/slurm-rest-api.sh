@@ -6,11 +6,6 @@ set -e
 # Set variables from post-install args
 secret_id=$1
 
-if [ "$(grep -Ei 'debian|buntu|mint' /etc/*release)" ]; then
-  # Why is this needed?!
-  sudo apt update
-fi
-
 mkdir -p /tmp/slurm_rest_api
 pushd /tmp/slurm_rest_api
 
@@ -32,8 +27,9 @@ do
 done
 
 # Add JWT key to controller in StateSaveLocation
-source <(grep StateSaveLocation /opt/slurm/etc/slurm.conf)
+SaveStateLocation=`scontrol show config | grep -oP "^StateSaveLocation\\s*\\=\\s*\\K(.+)"`
 dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
+
 chown slurm:slurm ${StateSaveLocation}/jwt_hs256.key
 chmod 0600 ${StateSaveLocation}/jwt_hs256.key
 chown slurm:slurm ${StateSaveLocation}
@@ -49,5 +45,6 @@ sudo cinc-client \
   -j dna_combined.json \
   -z slurm_rest_api.rb
 
-scontrol token username="ec2-user"
+SLURM_JWT=`scontrol token | grep -oP "^SLURM_JWT\\s*\\=\\s*\\K(.+)"`
+export $SLURM_JWT
 set +e
