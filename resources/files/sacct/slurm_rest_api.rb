@@ -7,11 +7,6 @@ secret = JSON.parse(shell_out!("aws secretsmanager get-secret-value --secret-id 
 slurm_etc = '/opt/slurm/etc'
 state_save_location = '/var/spool/slurm.state'
 
-default['cluster']['slurm']['restd_user'] = 'slurmrestd'
-default['cluster']['slurm']['restd_group'] = node['cluster']['slurm']['restd_user']
-default['cluster']['slurm']['restd_user_id'] = node['cluster']['reserved_base_uid'] + 5
-default['cluster']['slurm']['restd_group_id'] = node['cluster']['slurm']['restd_user_id']
-
 # TODO set group/user with node attributes:
 =begin
 # Setup slurm restd group
