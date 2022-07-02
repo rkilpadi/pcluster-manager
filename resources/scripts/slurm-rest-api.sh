@@ -27,7 +27,7 @@ do
 done
 
 # Add JWT key to controller in StateSaveLocation
-SaveStateLocation=`scontrol show config | grep -oP "^StateSaveLocation\\s*\\=\\s*\\K(.+)"`
+SaveStateLocation=`sudo /opt/slurm/bin/sacctmgr -i scontrol show config | grep -oP "^StateSaveLocation\\s*\\=\\s*\\K(.+)"`
 dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
 
 chown slurm:slurm ${StateSaveLocation}/jwt_hs256.key
