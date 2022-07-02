@@ -30,11 +30,6 @@ done
 SaveStateLocation=`sudo /opt/slurm/bin/sacctmgr -i scontrol show config | grep -oP "^StateSaveLocation\\s*\\=\\s*\\K(.+)"`
 dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
 
-chown slurm:slurm ${StateSaveLocation}/jwt_hs256.key
-chmod 0600 ${StateSaveLocation}/jwt_hs256.key
-chown slurm:slurm ${StateSaveLocation}
-chmod 0755 ${StateSaveLocation}
-
 sudo cinc-client \
   --local-mode \
   --config /etc/chef/client.rb \
