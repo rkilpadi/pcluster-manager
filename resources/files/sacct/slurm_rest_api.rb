@@ -67,7 +67,7 @@ ruby_block 'Add JWT configuration to slurm.conf' do
       file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
       file.write_file
     end
-    not_if "grep -q AuthAlt #{slurm_etc}/slurm.conf"
+    not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
 end
 
 service 'slurmrestd' do

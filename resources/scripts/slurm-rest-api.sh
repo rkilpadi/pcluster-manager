@@ -27,7 +27,7 @@ do
 done
 
 # Add JWT key to controller in StateSaveLocation
-SaveStateLocation=`sudo -i scontrol show config | grep -oP "^StateSaveLocation\\s*\\=\\s*\\K(.+)"`
+SaveStateLocation="/var/spool/slurm.state"
 dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
 
 sudo cinc-client \
