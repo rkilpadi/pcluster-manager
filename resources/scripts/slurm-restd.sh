@@ -3,8 +3,8 @@
 set -x
 set -e
 
-mkdir -p /tmp/slurm_rest_api
-pushd /tmp/slurm_rest_api
+mkdir -p /tmp/slurm_restd
+pushd /tmp/slurm_restd
 
 # Copy Slurm configuration files
 source_path=https://raw.githubusercontent.com/rkilpadi/pcluster-manager/develop/resources/files
