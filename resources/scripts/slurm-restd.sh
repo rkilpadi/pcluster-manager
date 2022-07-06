@@ -38,6 +38,6 @@ sudo cinc-client \
   --no-color \
   --chef-zero-port 8889 \
   -j dna_combined.json \
-  -z slurm_rest_api.rb
+  -z slurm_restd.rb
 
 set +e
