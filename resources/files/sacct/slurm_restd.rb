@@ -54,7 +54,7 @@ file '/etc/systemd/system/slurmrestd.service' do
   owner 'slurmrestd'
   group 'slurmrestd'
   mode '0644'
-  content ::File.open('/tmp/slurm_rest_api/slurmrestd.service').read
+  content ::File.open('/tmp/slurm_restd/slurmrestd.service').read
 end
 
 ruby_block 'Add JWT configuration to slurm.conf' do

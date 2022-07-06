@@ -42,7 +42,7 @@ sudo cinc-client \
   --force-formatter \
   --no-color \
   --chef-zero-port 8889 \
-  -j dna_combined.json \
+  -j dna_.json \
   -z slurm_accounting.rb
 
 # FIXME: make idempotent?
