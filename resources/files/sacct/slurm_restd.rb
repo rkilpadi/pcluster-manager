@@ -1,9 +1,6 @@
 require 'json'
 return if node['cluster']['node_type'] != 'HeadNode'
 
-# Get Slurm database credentials
-secret = JSON.parse(shell_out!("aws secretsmanager get-secret-value --secret-id #{node['slurm_accounting']['secret_id']} --region #{node['cluster']['region']} --query SecretString --output text").stdout)
-
 slurm_etc = '/opt/slurm/etc'
 state_save_location = '/var/spool/slurm.state'
 
@@ -61,13 +58,26 @@ file '/etc/systemd/system/slurmrestd.service' do
 end
 
 ruby_block 'Add JWT configuration to slurm.conf' do
-    block do
-      file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
-      file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
-      file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
-      file.write_file
+  block do
+    file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
+    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
+    file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
+    file.write_file
+  end
+  not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
+end
+
+ruby_block 'Generate JWT token and create/update AWS secret' do
+  block do
+    jwt_token = shell_out!("/opt/slurm/bin/scontrol token | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
+    find_cluster = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=slurm_token_#{node['cluster']['stack_name']} --region #{node['cluster']['region']}").run_command.stdout
+    if JSON.parse(find_cluster)['SecretList'].empty?
+      shell_out!("aws secretsmanager create-secret --name slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
+    else
+      shell_out!("aws secretsmanager update-secret --secret-id slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
+      puts "UPDATED"
     end
-    not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
+  end
 end
 
 service 'slurmrestd' do
