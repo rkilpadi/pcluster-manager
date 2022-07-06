@@ -3,20 +3,8 @@
 set -x
 set -e
 
-# Set variables from post-install args
-secret_id=$1
-
 mkdir -p /tmp/slurm_rest_api
 pushd /tmp/slurm_rest_api
-
-cat <<EOF > sacct_attrs.json
-{
-  "slurm_rest_api": {
-  "secret_id": "${secret_id}"}
-}
-EOF
-
-jq -s '.[0] * .[1]' /etc/chef/dna.json sacct_attrs.json > dna_combined.json
 
 # Copy Slurm configuration files
 source_path=https://raw.githubusercontent.com/rkilpadi/pcluster-manager/develop/resources/files
