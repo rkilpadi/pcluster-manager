@@ -14,10 +14,6 @@ do
     wget -qO- ${source_path}/sacct/${file} > ${file}
 done
 
-# Add JWT key to controller in StateSaveLocation
-StateSaveLocation="/var/spool/slurm.state"
-dd if=/dev/random of=${StateSaveLocation}/jwt_hs256.key bs=32 count=1
-
 sudo cinc-client \
   --local-mode \
   --config /etc/chef/client.rb \
