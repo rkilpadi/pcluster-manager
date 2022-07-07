@@ -25,7 +25,7 @@ sudo cinc-client \
   --force-formatter \
   --no-color \
   --chef-zero-port 8889 \
-  -j dna_combined.json \
+  -j /etc/chef/dna.json \
   -z slurm_restd.rb
 
 set +e
