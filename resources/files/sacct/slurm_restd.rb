@@ -64,7 +64,25 @@ ruby_block 'Add JWT configuration to slurm.conf' do
     file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
     file.write_file
   end
+  not_if "grep -q auth/jwt #{slurm_etc}/slurm"
+end
+
+ruby_block 'Add JWT configuration to slurmdbd.conf' do
+  block do
+    file = Chef::Util::FileEdit.new("#{slurm_etc}/slurmdbd.conf")
+    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
+    file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
+    file.write_file
+  end
   not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
+end
+
+service 'slurmrestd' do
+  action :start
+end
+
+service 'slurmctld' do
+  action :restart
 end
 
 ruby_block 'Generate JWT token and create/update AWS secret' do
@@ -78,12 +96,4 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
       puts "UPDATED"
     end
   end
-end
-
-service 'slurmrestd' do
-  action :start
-end
-
-service 'slurmctld' do
-  action :restart
 end
