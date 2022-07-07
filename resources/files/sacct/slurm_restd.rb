@@ -64,7 +64,7 @@ ruby_block 'Add JWT configuration to slurm.conf' do
     file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
     file.write_file
   end
-  not_if "grep -q auth/jwt #{slurm_etc}/slurm"
+  not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
 end
 
 ruby_block 'Add JWT configuration to slurmdbd.conf' do
@@ -93,7 +93,6 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
       shell_out!("aws secretsmanager create-secret --name slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
     else
       shell_out!("aws secretsmanager update-secret --secret-id slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
-      puts "UPDATED"
     end
   end
 end
