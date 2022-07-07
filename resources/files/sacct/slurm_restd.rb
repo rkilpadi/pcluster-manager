@@ -3,42 +3,31 @@ return if node['cluster']['node_type'] != 'HeadNode'
 
 slurm_etc = '/opt/slurm/etc'
 state_save_location = '/var/spool/slurm.state'
+key_location = state_save_location + '/jwt_hs256.key'
+id = 2005
 
-# TODO set group/user with node attributes:
-=begin
-# Setup slurm restd group
-group node['cluster']['slurm']['restd_group'] do
-    comment 'slurm restd group'
-    gid node['cluster']['slurm']['restd_group_id']
-    system true
+ruby_block 'Create JWT key file' do
+  block do
+    shell_out!("dd if=/dev/random of=#{key_location} bs=32 count=1")
+  end
 end
-  
-  # Setup slurm restd user
-user node['cluster']['slurm']['restd_user'] do
-    comment 'slurm restd user'
-    uid node['cluster']['slurm']['restd_user_id']
-    gid node['cluster']['slurm']['restd_group_id']
-    home "/home/#{node['cluster']['slurm']['user']}"
-    system true
-    shell '/bin/bash'
-end
-=end
+
 group 'slurmrestd' do
     comment 'slurmrestd group'
-    gid '2000'
+    gid id
     system true
-    action :create
 end
 
 user 'slurmrestd' do
-    comment 'slurmrestd user'
-    uid '2000'
-    gid '2000'
-    system true
-    action :create
+  comment 'slurmrestd user'
+  uid id
+  gid id
+  home '/home/slurm'
+  system true
+  shell '/bin/bash'
 end
 
-file "#{state_save_location}/jwt_hs256.key" do
+file "#{key_location}" do
   owner 'slurm'
   group 'slurm'
   mode '0600'
@@ -60,8 +49,8 @@ end
 ruby_block 'Add JWT configuration to slurm.conf' do
   block do
     file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
+    file.insert_line_after_match(/AuthType=*/, "AuthAltParameters=jwt_key=#{key_location}")
     file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
-    file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
     file.write_file
   end
   not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
@@ -70,8 +59,8 @@ end
 ruby_block 'Add JWT configuration to slurmdbd.conf' do
   block do
     file = Chef::Util::FileEdit.new("#{slurm_etc}/slurmdbd.conf")
-    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
-    file.insert_line_after_match(/AuthAltTypes=*/, "AuthAltParameters=jwt_key=#{state_save_location}/jwt_hs256.key")
+    file.insert_line_after_match(/AuthType=*/, "AuthAltParameters=jwt_key=#{key_location}")
+    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")
     file.write_file
   end
   not_if "grep -q auth/jwt #{slurm_etc}/slurmdbd.conf"
@@ -87,12 +76,15 @@ end
 
 ruby_block 'Generate JWT token and create/update AWS secret' do
   block do
+    token_name = "slurm_token_" + node['cluster']['stack_name'] + " --region #{node['cluster']['region']}"
+    region_parameter = "--region " + node['cluster']['region']
     jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
-    find_cluster = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=slurm_token_#{node['cluster']['stack_name']} --region #{node['cluster']['region']}").run_command.stdout
-    if JSON.parse(find_cluster)['SecretList'].empty?
-      shell_out!("aws secretsmanager create-secret --name slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
+    secrets = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=""#{token_name}"" #{region_parameter} --query ""SecretList""").run_command.stdout
+    
+    if secrets.empty?
+      shell_out!("aws secretsmanager create-secret --name #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
     else
-      shell_out!("aws secretsmanager update-secret --secret-id slurm_token_#{node['cluster']['stack_name']} --secret-string \" #{jwt_token} \" --region #{node['cluster']['region']}").run_command
+      shell_out!("aws secretsmanager update-secret --secret-id #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
     end
   end
 end
