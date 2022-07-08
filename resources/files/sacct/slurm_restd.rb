@@ -81,7 +81,7 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
     jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
     secrets = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=""#{token_name}"" #{region_parameter} --query ""SecretList""").run_command.stdout
     
-    if secrets.empty?
+    if JSON.parse(secrets).empty?
       shell_out!("aws secretsmanager create-secret --name #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
     else
       shell_out!("aws secretsmanager update-secret --secret-id #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
