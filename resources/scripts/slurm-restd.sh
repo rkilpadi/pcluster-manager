@@ -8,7 +8,7 @@ pushd /tmp/slurm_restd
 
 # Copy Slurm configuration files
 source_path=https://raw.githubusercontent.com/rkilpadi/pcluster-manager/develop/resources/files
-files=(slurmrestd.service slurm_restd.rb)
+files=(slurmrestd.service slurm_restd.rb nginx.conf.erb nginx.repo.erb)
 for file in "${files[@]}"
 do
     wget -qO- ${source_path}/sacct/${file} > ${file}
