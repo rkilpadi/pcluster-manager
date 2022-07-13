@@ -6,12 +6,18 @@ state_save_location = '/var/spool/slurm.state'
 key_location = state_save_location + '/jwt_hs256.key'
 id = 2005
 
+platform = node['platform']
+if platform == 'amazon'
+  platform = 'amzn2'
+end
+
 ruby_block 'Create JWT key file' do
   block do
     shell_out!("dd if=/dev/random of=#{key_location} bs=32 count=1")
   end
 end
 
+# TODO: Not idempotent if user is in process 
 group 'slurmrestd' do
     comment 'slurmrestd group'
     gid id
@@ -76,15 +82,50 @@ end
 
 ruby_block 'Generate JWT token and create/update AWS secret' do
   block do
-    token_name = "slurm_token_" + node['cluster']['stack_name'] + " --region #{node['cluster']['region']}"
+    token_name = "slurm_token_" + node['cluster']['stack_name']
     region_parameter = "--region " + node['cluster']['region']
     jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
     secrets = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=""#{token_name}"" #{region_parameter} --query ""SecretList""").run_command.stdout
-    
     if JSON.parse(secrets).empty?
       shell_out!("aws secretsmanager create-secret --name #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
     else
       shell_out!("aws secretsmanager update-secret --secret-id #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
     end
   end
+end
+
+# NGINX installation
+package 'nginx' do
+  action :install
+end
+
+# generate key and crt
+ruby_block 'Generate self-signed key' do
+  block do
+    shell_out!("sudo openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout /etc/ssl/certs/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt -subj ""/CN=#{node['cluster']['stack_name']}""").run_command
+  end
+end
+
+template '/etc/yum.repos.d/nginx.repo' do
+  source '/tmp/slurm_restd/nginx.repo.erb'
+  owner 'nginx'
+  group 'nginx'
+  mode '0644'
+  variables(
+    os: platform,
+    os_release: node['platform_version']
+  )
+  local true
+end
+
+template 'etc/nginx/nginx.conf' do
+  source '/tmp/slurm_restd/nginx.conf.erb'
+  owner 'nginx'
+  group 'nginx'
+  mode '0644'
+  local true
+end
+
+service 'nginx' do
+  action :start
 end
