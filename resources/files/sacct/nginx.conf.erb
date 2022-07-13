@@ -40,27 +40,26 @@ http {
         root         /usr/share/nginx/html;
 
         location / {
-            proxy_pass http://slurmrestd;
+            proxy_pass                  http://slurmrestd;
 
-#           auth_request     /validate/;
-#           auth_request_set $user_name $upstream_http_x_slurm_user_name;
-#           auth_request_set $user_token $upstream_http_x_slurm_user_token;
-
-#           proxy_set_header X-SLURM-USER-NAME $user_name;
-#           proxy_set_header X-SLURM-USER-TOKEN $user_token;
-            proxy_set_header Host      $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-Port $server_port;
-            proxy_pass_request_headers      on;
+#           auth_request                /validate/;
+#           auth_request_set            $user_name $upstream_http_x_slurm_user_name;
+#           auth_request_set            $user_token $upstream_http_x_slurm_user_token;
+#           proxy_set_header            X-SLURM-USER-NAME $user_name;
+#           proxy_set_header            X-SLURM-USER-TOKEN $user_token;
+            proxy_set_header Host       $host;
+            proxy_set_header X-Real-IP  $remote_addr;
+            proxy_set_header            X-Forwarded-Port $server_port;
+            proxy_pass_request_headers  on;
         }
 
-        ssl_certificate        /etc/ssl/certs/nginx-selfsigned.crt;
-        ssl_certificate_key    /etc/ssl/certs/nginx-selfsigned.key;
-        ssl_client_certificate /etc/ssl/certs/ca.crt;
-        ssl_session_cache shared:SSL:1m;
-        ssl_session_timeout  10m;
-        ssl_ciphers HIGH:!aNULL:!MD5;
-        ssl_prefer_server_ciphers on;
+        ssl_certificate             /etc/ssl/certs/nginx-selfsigned.crt;
+        ssl_certificate_key         /etc/ssl/certs/nginx-selfsigned.key;
+        ssl_client_certificate      /etc/ssl/certs/ca.crt;
+        ssl_session_cache           shared:SSL:1m;
+        ssl_session_timeout         10m;
+        ssl_ciphers                 HIGH:!aNULL:!MD5;
+        ssl_prefer_server_ciphers   on;
 
         # Load configuration files for the default server block.
         include /etc/nginx/default.d/*.conf;

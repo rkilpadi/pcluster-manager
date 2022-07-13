@@ -4,6 +4,8 @@ return if node['cluster']['node_type'] != 'HeadNode'
 slurm_etc = '/opt/slurm/etc'
 state_save_location = '/var/spool/slurm.state'
 key_location = state_save_location + '/jwt_hs256.key'
+certs_location = '/etc/ssl/certs'
+key_and_crt_name = 'nginx-selfsigned'
 id = 2005
 
 platform = node['platform']
@@ -33,13 +35,13 @@ user 'slurmrestd' do
   shell '/bin/bash'
 end
 
-file "#{key_location}" do
+file key_location do
   owner 'slurm'
   group 'slurm'
   mode '0600'
 end
 
-directory "#{state_save_location}" do
+directory state_save_location do
   owner 'slurm'
   group 'slurm'
   mode '0755'
@@ -83,13 +85,26 @@ end
 ruby_block 'Generate JWT token and create/update AWS secret' do
   block do
     token_name = "slurm_token_" + node['cluster']['stack_name']
-    region_parameter = "--region " + node['cluster']['region']
-    jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
-    secrets = shell_out!("aws secretsmanager list-secrets --filter Key=""name"",Values=""#{token_name}"" #{region_parameter} --query ""SecretList""").run_command.stdout
-    if JSON.parse(secrets).empty?
-      shell_out!("aws secretsmanager create-secret --name #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
+    region = node['cluster']['region']
+
+    jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 \
+      | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
+
+    secret = shell_out!("aws secretsmanager list-secrets \
+      --filter Key=""name"",Values=""#{token_name}"" \
+      --region #{region} \
+      --query ""SecretList""").run_command.stdout
+
+    if JSON.parse(secret).empty?
+      shell_out!("aws secretsmanager create-secret \
+        --name #{token_name} \
+        --region #{region} \
+        --secret-string #{jwt_token}").run_command
     else
-      shell_out!("aws secretsmanager update-secret --secret-id #{token_name} #{region_parameter} --secret-string #{jwt_token}").run_command
+      shell_out!("aws secretsmanager update-secret \
+        --secret-id #{token_name} \
+        --region #{region} \
+        --secret-string #{jwt_token}").run_command
     end
   end
 end
@@ -99,10 +114,12 @@ package 'nginx' do
   action :install
 end
 
-# generate key and crt
 ruby_block 'Generate self-signed key' do
   block do
-    shell_out!("sudo openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout /etc/ssl/certs/nginx-selfsigned.key -out /etc/ssl/certs/nginx-selfsigned.crt -subj ""/CN=#{node['cluster']['stack_name']}""").run_command
+    shell_out!("sudo openssl req -x509 -nodes -days 36500 -newkey rsa:2048 \
+      -keyout /etc/ssl/certs/nginx-selfsigned.key \
+      -out /etc/ssl/certs/nginx-selfsigned.crt \
+      -subj ""/CN=#{node['cluster']['stack_name']}""").run_command
   end
 end
 
@@ -118,12 +135,11 @@ template '/etc/yum.repos.d/nginx.repo' do
   local true
 end
 
-template 'etc/nginx/nginx.conf' do
-  source '/tmp/slurm_restd/nginx.conf.erb'
+file 'etc/nginx/nginx.conf' do
   owner 'nginx'
   group 'nginx'
   mode '0644'
-  local true
+  content ::File.open('/tmp/slurm_restd/nginx.conf').read
 end
 
 service 'nginx' do
