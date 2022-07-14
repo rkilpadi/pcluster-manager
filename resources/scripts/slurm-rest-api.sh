@@ -7,7 +7,7 @@ mkdir -p /tmp/slurm_rest_api
 pushd /tmp/slurm_rest_api
 
 # Copy Slurm configuration files
-source_path=https://raw.githubusercontent.com/rkilpadi/pcluster-manager/develop/resources/files
+source_path=https://raw.githubusercontent.com/aws-samples/pcluster-manager/main/resources/files
 files=(slurmrestd.service slurm_rest_api.rb nginx.conf nginx.repo.erb)
 for file in "${files[@]}"
 do
