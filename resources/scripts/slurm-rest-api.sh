@@ -3,12 +3,12 @@
 set -x
 set -e
 
-mkdir -p /tmp/slurm_restd
-pushd /tmp/slurm_restd
+mkdir -p /tmp/slurm_rest_api
+pushd /tmp/slurm_rest_api
 
 # Copy Slurm configuration files
 source_path=https://raw.githubusercontent.com/aws-samples/pcluster-manager/main/resources/files
-files=(slurmrestd.service slurm_restd.rb nginx.conf nginx.repo.erb)
+files=(slurmrestd.service slurm_rest_api.rb nginx.conf nginx.repo.erb)
 for file in "${files[@]}"
 do
     wget -qO- ${source_path}/sacct/${file} > ${file}
@@ -22,6 +22,6 @@ sudo cinc-client \
   --no-color \
   --chef-zero-port 8889 \
   -j /etc/chef/dna.json \
-  -z slurm_restd.rb
+  -z slurm_rest_api.rb
 
 set +e
