@@ -13,6 +13,7 @@ if platform == 'amazon'
   platform = 'amzn2'
 end
 
+# Configure Slurm for JWT authentication and enable slurmrestd
 ruby_block 'Create JWT key file' do
   block do
     shell_out!("dd if=/dev/random of=#{key_location} bs=32 count=1")
@@ -51,7 +52,7 @@ file '/etc/systemd/system/slurmrestd.service' do
   owner 'slurmrestd'
   group 'slurmrestd'
   mode '0644'
-  content ::File.open('/tmp/slurm_restd/slurmrestd.service').read
+  content ::File.open('/tmp/slurm_rest_api/slurmrestd.service').read
 end
 
 ruby_block 'Add JWT configuration to slurm.conf' do
@@ -124,7 +125,7 @@ ruby_block 'Generate self-signed key' do
 end
 
 template '/etc/yum.repos.d/nginx.repo' do
-  source '/tmp/slurm_restd/nginx.repo.erb'
+  source '/tmp/slurm_rest_api/nginx.repo.erb'
   owner 'nginx'
   group 'nginx'
   mode '0644'
@@ -139,7 +140,7 @@ file 'etc/nginx/nginx.conf' do
   owner 'nginx'
   group 'nginx'
   mode '0644'
-  content ::File.open('/tmp/slurm_restd/nginx.conf').read
+  content ::File.open('/tmp/slurm_rest_api/nginx.conf').read
 end
 
 service 'nginx' do
