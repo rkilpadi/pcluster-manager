@@ -38,4 +38,6 @@ Go to your [EC2 Instances](https://console.aws.amazon.com/ec2/v2/home?#Instances
 In your terminal, run `export ip=[public_ipv4_dns]`
 
 In your terminal, run diagnostics on your cluster through the Slurm REST API:  
-`curl -H "X-SLURM-USER-NAME:ec2-user" -H "X-SLURM-USER-TOKEN:$SLURM_JWT" https://$ip/slurm/v0.0.36/diag`
+`curl -H "X-SLURM-USER-NAME:ec2-user" -H "X-SLURM-USER-TOKEN:$SLURM_JWT" https://$ip/slurm/v0.0.36/diag -k`
+
+If your cluster is running Ubuntu, you may need to add the `--http1.1` flag

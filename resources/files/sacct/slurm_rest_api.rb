@@ -1,4 +1,4 @@
-require 'json'
+equire 'json'
 return if node['cluster']['node_type'] != 'HeadNode'
 
 slurm_etc = '/opt/slurm/etc'
@@ -13,14 +13,14 @@ if platform == 'amazon'
   platform = 'amzn2'
 end
 
-# Configure Slurm for JWT authentication and enable slurmrestd
+# Configure Slurm for JWT authentication
 ruby_block 'Create JWT key file' do
   block do
     shell_out!("dd if=/dev/random of=#{key_location} bs=32 count=1")
   end
 end
 
-# TODO: Not idempotent if user is in process 
+# TODO: Not idempotent if user is in process
 group 'slurmrestd' do
     comment 'slurmrestd group'
     gid id
@@ -48,18 +48,11 @@ directory state_save_location do
   mode '0755'
 end
 
-file '/etc/systemd/system/slurmrestd.service' do
-  owner 'slurmrestd'
-  group 'slurmrestd'
-  mode '0644'
-  content ::File.open('/tmp/slurm_rest_api/slurmrestd.service').read
-end
-
 ruby_block 'Add JWT configuration to slurm.conf' do
   block do
     file = Chef::Util::FileEdit.new("#{slurm_etc}/slurm.conf")
     file.insert_line_after_match(/AuthType=*/, "AuthAltParameters=jwt_key=#{key_location}")
-    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")      
+    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")
     file.write_file
   end
   not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
@@ -73,10 +66,6 @@ ruby_block 'Add JWT configuration to slurmdbd.conf' do
     file.write_file
   end
   not_if "grep -q auth/jwt #{slurm_etc}/slurmdbd.conf"
-end
-
-service 'slurmrestd' do
-  action :start
 end
 
 service 'slurmctld' do
@@ -110,6 +99,18 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
   end
 end
 
+# Enable slurmrestd
+file '/etc/systemd/system/slurmrestd.service' do
+  owner 'slurmrestd'
+  group 'slurmrestd'
+  mode '0644'
+  content ::File.open('/tmp/slurm_rest_api/slurmrestd.service').read
+end
+
+service 'slurmrestd' do
+  action :start
+end
+
 # NGINX installation
 package 'nginx' do
   action :install
@@ -124,16 +125,17 @@ ruby_block 'Generate self-signed key' do
   end
 end
 
-template '/etc/yum.repos.d/nginx.repo' do
-  source '/tmp/slurm_rest_api/nginx.repo.erb'
-  owner 'nginx'
-  group 'nginx'
-  mode '0644'
-  variables(
-    os: platform,
-    os_release: node['platform_version']
-  )
-  local true
+group 'nginx' do
+  comment 'nginx group'
+  gid id + 1
+  system true
+end
+
+user 'nginx' do
+  comment 'nginx user'
+  uid id + 1
+  gid id + 1
+  system true
 end
 
 file 'etc/nginx/nginx.conf' do
