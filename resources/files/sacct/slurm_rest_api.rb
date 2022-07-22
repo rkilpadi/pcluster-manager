@@ -1,4 +1,4 @@
-equire 'json'
+require 'json'
 return if node['cluster']['node_type'] != 'HeadNode'
 
 slurm_etc = '/opt/slurm/etc'
