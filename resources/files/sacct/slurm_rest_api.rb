@@ -31,9 +31,7 @@ user 'slurmrestd' do
   comment 'slurmrestd user'
   uid id
   gid id
-  home '/home/slurm'
   system true
-  shell '/bin/bash'
 end
 
 file key_location do
@@ -79,22 +77,19 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
 
     jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 \
       | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
-
-    secret = shell_out!("aws secretsmanager list-secrets \
-      --filter Key=""name"",Values=""#{token_name}"" \
-      --region #{region} \
-      --query ""SecretList""").run_command.stdout
-
-    if JSON.parse(secret).empty?
+    
+    begin
       shell_out!("aws secretsmanager create-secret \
         --name #{token_name} \
         --region #{region} \
-        --secret-string #{jwt_token}").run_command
-    else
+        --secret-string #{jwt_token}"
+      ).run_command
+    rescue
       shell_out!("aws secretsmanager update-secret \
         --secret-id #{token_name} \
         --region #{region} \
-        --secret-string #{jwt_token}").run_command
+        --secret-string #{jwt_token}"
+      ).run_command
     end
   end
 end
@@ -121,7 +116,8 @@ ruby_block 'Generate self-signed key' do
     shell_out!("sudo openssl req -x509 -nodes -days 36500 -newkey rsa:2048 \
       -keyout /etc/ssl/certs/nginx-selfsigned.key \
       -out /etc/ssl/certs/nginx-selfsigned.crt \
-      -subj ""/CN=#{node['cluster']['stack_name']}""").run_command
+      -subj ""/CN=#{node['cluster']['stack_name']}"""
+    ).run_command
   end
 end
 
