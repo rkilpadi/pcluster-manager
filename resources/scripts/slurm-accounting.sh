@@ -28,8 +28,8 @@ EOF
 jq -s '.[0] * .[1]' /etc/chef/dna.json sacct_attrs.json > dna_combined.json
 
 # Copy Slurm configuration files
-source_path=https://raw.githubusercontent.com/aws-samples/pcluster-manager/main/resources/files
-files=(slurm_sacct.conf.erb slurmdbd.service slurmdbd.conf.erb  slurm_accounting.rb)
+source_path=https://raw.githubusercontent.com/rkilpadi/pcluster-manager/script/resources/files
+files=(slurm_sacct.conf.erb slurmdbd.service slurmdbd.conf.erb slurm_accounting.rb)
 for file in "${files[@]}"
 do
     wget -qO- ${source_path}/sacct/${file} > ${file}
