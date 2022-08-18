@@ -38,16 +38,6 @@ ruby_block 'Add JWT configuration to slurm.conf' do
   not_if "grep -q auth/jwt #{slurm_etc}/slurm.conf"
 end
 
-ruby_block 'Add JWT configuration to slurmdbd.conf' do
-  block do
-    file = Chef::Util::FileEdit.new("#{slurm_etc}/slurmdbd.conf")
-    file.insert_line_after_match(/AuthType=*/, "AuthAltParameters=jwt_key=#{key_location}")
-    file.insert_line_after_match(/AuthType=*/, "AuthAltTypes=auth/jwt")
-    file.write_file
-  end
-  not_if "grep -q auth/jwt #{slurm_etc}/slurmdbd.conf"
-end
-
 service 'slurmctld' do
   action :restart
 end
