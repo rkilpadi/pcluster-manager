@@ -57,7 +57,7 @@ ruby_block 'Generate JWT token and create/update AWS secret' do
     token_name = "slurm_token_" + node['cluster']['stack_name']
     region = node['cluster']['region']
 
-    jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=9999999999 \
+    jwt_token = shell_out!("/opt/slurm/bin/scontrol token lifespan=999999999 \
       | grep -oP '^SLURM_JWT\\s*\\=\\s*\\K(.+)'").run_command.stdout
     
     begin
